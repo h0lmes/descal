@@ -1,0 +1,169 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Project-Id-Version: \n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: Holmes <mr_holmes@list.ru>\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: declu.xerrorcontactdeveloper
+msgid "Contact developer if error is permanent."
+msgstr "Свяжитель с разработчиком если ошибка повторяется."
+
+#: declu.xerrorin
+msgid "Error in"
+msgstr "Ошибка в"
+
+#: declu.xexit
+msgid "Exit"
+msgstr "Выйти"
+
+#: declu.xmsgaddautostart
+msgid "Would you like to run it every time Windows starts?"
+msgstr "Запускать каждый раз при старте Windows?"
+
+#: declu.xmsgfirstrun
+msgid "Hello. This is the first time to run Descal."
+msgstr "Здравствуйте. Это первый запуск Descal."
+
+#: declu.xpageabout
+msgctxt "declu.xpageabout"
+msgid "About"
+msgstr "О программе"
+
+#: declu.xpagegeneral
+msgctxt "declu.xpagegeneral"
+msgid "General"
+msgstr "Общее"
+
+#: declu.xpagestyle
+msgctxt "declu.xpagestyle"
+msgid "Style"
+msgstr "Стиль"
+
+#: declu.xprogramsettings
+msgid "Program settings"
+msgstr "Настройки программы"
+
+#: declu.xstartbuttontext
+msgid "Start"
+msgstr ""
+
+#: declu.xzorderbottom
+msgid "Stay at the bottom (desktop)"
+msgstr "Оставаться под другими окнами (на рабочем столе)"
+
+#: declu.xzordernormal
+msgid "As normal window"
+msgstr "Как обычное окно"
+
+#: declu.xzorderstayontop
+msgid "Stay at the top of other windows"
+msgstr "Оставаться поверх других окон"
+
+#: tfrmdescal.caption
+msgid "Desktop Calendar"
+msgstr ""
+
+#: tfrmsets.btnfont.caption
+msgid "Font"
+msgstr "Шрифт"
+
+#: tfrmsets.btnfontcolor.caption
+msgid "Font color"
+msgstr "Цвет шрифта"
+
+#: tfrmsets.btntodaymarkcolor.caption
+msgid "\"Today\" mark color"
+msgstr "Цвет метки \"Сегодня\""
+
+#: tfrmsets.btnweekendfontcolor.caption
+msgid "Weekend font color"
+msgstr "Цвет шрифта выходных"
+
+#: tfrmsets.btn_cancel.caption
+msgid "Cancel"
+msgstr "Отменить"
+
+#: tfrmsets.btn_ok.caption
+msgid "OK"
+msgstr ""
+
+#: tfrmsets.caption
+msgid "Settings"
+msgstr "Настройки"
+
+#: tfrmsets.cbautorun.caption
+msgid "Start with Windows  "
+msgstr "Запускать при старте Windows"
+
+#: tfrmsets.chbblur.caption
+msgid "Enable Aero Glass"
+msgstr "Включить эффект Aero Glass"
+
+#: tfrmsets.chbfilltoday.caption
+msgid "Fill mark with color"
+msgstr "Залить метку цветом"
+
+#: tfrmsets.chbnextmonth.caption
+msgid "Show next month  "
+msgstr "Показывать следующий месяц"
+
+#: tfrmsets.chbprevmonth.caption
+msgid "Show previous month  "
+msgstr "Показывать предыдущий месяц"
+
+#: tfrmsets.label1.caption
+msgid "Cell size:"
+msgstr "Размер клетки:"
+
+#: tfrmsets.label2.caption
+msgid "Border:"
+msgstr "Рамка:"
+
+#: tfrmsets.lblbackgroundtransparency.caption
+msgid "Background opacity:"
+msgstr "Непрозрачность фона:"
+
+#: tfrmsets.lblcredits.caption
+msgid "A desktop calendar"
+msgstr "Календарь для рабочего стола"
+
+#: tfrmsets.lblcredits1.caption
+msgid "Author and developer: Roman Dubinin"
+msgstr "Автор и разработчик: Роман Дубинин"
+
+#: tfrmsets.lblcredits3.caption
+msgid "Built with Lazarus/FPC"
+msgstr "Собрано с помощью Lazarus/FPC"
+
+#: tfrmsets.lblcredits4.caption
+msgid "Licensed under LGPL 2.1"
+msgstr "Лицензия LGPL 2.1"
+
+#: tfrmsets.lbltitle.caption
+msgid "Descal"
+msgstr ""
+
+#: tfrmsets.rgposition.caption
+msgid "  Position  "
+msgstr "  Позиция  "
+
+#: tfrmsets.tsabout.caption
+msgctxt "tfrmsets.tsabout.caption"
+msgid "About"
+msgstr "О программе"
+
+#: tfrmsets.tsgeneral.caption
+msgctxt "tfrmsets.tsgeneral.caption"
+msgid "General"
+msgstr "Общие"
+
+#: tfrmsets.tsstyle.caption
+msgctxt "tfrmsets.tsstyle.caption"
+msgid "Style"
+msgstr "Стиль"
+

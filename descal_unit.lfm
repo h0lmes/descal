@@ -1,0 +1,20 @@
+object frmdescal: Tfrmdescal
+  Left = 501
+  Height = 239
+  Top = 250
+  Width = 305
+  BorderIcons = []
+  BorderStyle = bsNone
+  Caption = 'Desktop Calendar'
+  OnClose = FormClose
+  OnMouseDown = FormMouseDown
+  OnMouseUp = FormMouseUp
+  LCLVersion = '1.0.10.0'
+  object trayicon: TTrayIcon
+    BalloonHint = 'Descal'
+    Visible = True
+    OnMouseUp = trayiconMouseUp
+    left = 14
+    top = 17
+  end
+end

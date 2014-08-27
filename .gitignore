@@ -1,0 +1,16 @@
+backup/
+lib/
+
+sets.ini
+*.bak
+*.~*
+*.log
+
+*.a
+*.o
+*.or
+*.compiled
+*.ppu
+*.res
+*.rst
+*.obj

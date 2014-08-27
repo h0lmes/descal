@@ -1,0 +1,161 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: declu.xerrorcontactdeveloper
+msgid "Contact developer if error is permanent."
+msgstr ""
+
+#: declu.xerrorin
+msgid "Error in"
+msgstr ""
+
+#: declu.xexit
+msgid "Exit"
+msgstr ""
+
+#: declu.xmsgaddautostart
+msgid "Would you like to run it every time Windows starts?"
+msgstr ""
+
+#: declu.xmsgfirstrun
+msgid "Hello. This is the first time to run Descal."
+msgstr ""
+
+#: declu.xpageabout
+msgctxt "declu.xpageabout"
+msgid "About"
+msgstr ""
+
+#: declu.xpagegeneral
+msgctxt "declu.xpagegeneral"
+msgid "General"
+msgstr ""
+
+#: declu.xpagestyle
+msgctxt "declu.xpagestyle"
+msgid "Style"
+msgstr ""
+
+#: declu.xprogramsettings
+msgid "Program settings"
+msgstr ""
+
+#: declu.xstartbuttontext
+msgid "Start"
+msgstr ""
+
+#: declu.xzorderbottom
+msgid "Stay at the bottom (desktop)"
+msgstr ""
+
+#: declu.xzordernormal
+msgid "As normal window"
+msgstr ""
+
+#: declu.xzorderstayontop
+msgid "Stay at the top of other windows"
+msgstr ""
+
+#: tfrmdescal.caption
+msgid "Desktop Calendar"
+msgstr ""
+
+#: tfrmsets.btnfont.caption
+msgid "Font"
+msgstr ""
+
+#: tfrmsets.btnfontcolor.caption
+msgid "Font color"
+msgstr ""
+
+#: tfrmsets.btntodaymarkcolor.caption
+msgid "\"Today\" mark color"
+msgstr ""
+
+#: tfrmsets.btnweekendfontcolor.caption
+msgid "Weekend font color"
+msgstr ""
+
+#: tfrmsets.btn_cancel.caption
+msgid "Cancel"
+msgstr ""
+
+#: tfrmsets.btn_ok.caption
+msgid "OK"
+msgstr ""
+
+#: tfrmsets.caption
+msgid "Settings"
+msgstr ""
+
+#: tfrmsets.cbautorun.caption
+msgid "Start with Windows  "
+msgstr ""
+
+#: tfrmsets.chbblur.caption
+msgid "Enable Aero Glass"
+msgstr ""
+
+#: tfrmsets.chbfilltoday.caption
+msgid "Fill mark with color"
+msgstr ""
+
+#: tfrmsets.chbnextmonth.caption
+msgid "Show next month  "
+msgstr ""
+
+#: tfrmsets.chbprevmonth.caption
+msgid "Show previous month  "
+msgstr ""
+
+#: tfrmsets.label1.caption
+msgid "Cell size:"
+msgstr ""
+
+#: tfrmsets.label2.caption
+msgid "Border:"
+msgstr ""
+
+#: tfrmsets.lblbackgroundtransparency.caption
+msgid "Background opacity:"
+msgstr ""
+
+#: tfrmsets.lblcredits.caption
+msgid "A desktop calendar"
+msgstr ""
+
+#: tfrmsets.lblcredits1.caption
+msgid "Author and developer: Roman Dubinin"
+msgstr ""
+
+#: tfrmsets.lblcredits3.caption
+msgid "Built with Lazarus/FPC"
+msgstr ""
+
+#: tfrmsets.lblcredits4.caption
+msgid "Licensed under LGPL 2.1"
+msgstr ""
+
+#: tfrmsets.lbltitle.caption
+msgid "Descal"
+msgstr ""
+
+#: tfrmsets.rgposition.caption
+msgid "  Position  "
+msgstr ""
+
+#: tfrmsets.tsabout.caption
+msgctxt "tfrmsets.tsabout.caption"
+msgid "About"
+msgstr ""
+
+#: tfrmsets.tsgeneral.caption
+msgctxt "tfrmsets.tsgeneral.caption"
+msgid "General"
+msgstr ""
+
+#: tfrmsets.tsstyle.caption
+msgctxt "tfrmsets.tsstyle.caption"
+msgid "Style"
+msgstr ""
+
