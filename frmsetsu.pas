@@ -134,7 +134,7 @@ begin
   chbNextMonth.OnChange := chbNextMonthChange;
 
   // style
-  chbBlur.Enabled := dwm.CompositingEnabled;
+  chbBlur.Enabled := dwm.IsCompositionEnabled;
   chbBlur.OnClick := nil;
   chbBlur.checked := sets.container.Blur;
   chbBlur.OnClick := chbBlurClick;

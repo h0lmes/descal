@@ -73,6 +73,8 @@ begin
   FPrevWndProc := Pointer(GetWindowLong(Handle, GWL_WNDPROC));
   SetWindowLong(Handle, GWL_WNDPROC, LongInt(FWndInstance));
 
+  DWM.ExcludeFromPeek(Handle);
+
   AddLog('Init.RegisterRawInput');
   RegisterRawInput;
 
@@ -183,7 +185,7 @@ begin
   // update window //
   try
     gdip_gfx.UpdateLWindow(Handle, bmp, 255);
-    if sets.container.Blur and dwm.CompositingEnabled then
+    if sets.container.Blur and dwm.IsCompositionEnabled then
     begin
       rgn := CreateRoundRectRgn(1, 1, FW, FH, sets.container.Radius * 2, sets.container.Radius * 2);
       DWM.EnableBlurBehindWindow(Handle, rgn);
