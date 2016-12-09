@@ -6,6 +6,7 @@ sets.ini
 *.~*
 *.log
 
+*.exe
 *.a
 *.o
 *.or
@@ -14,3 +15,4 @@ sets.ini
 *.res
 *.rst
 *.obj
+*.lps
