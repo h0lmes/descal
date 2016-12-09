@@ -9,6 +9,10 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+#: declu.xcolumns
+msgid "Columns"
+msgstr "Колонки"
+
 #: declu.xerrorcontactdeveloper
 msgid "Contact developer if error is permanent."
 msgstr "Свяжитель с разработчиком если ошибка повторяется."
@@ -48,6 +52,14 @@ msgstr "Стиль"
 msgid "Program settings"
 msgstr "Настройки программы"
 
+#: declu.xshownextmonths
+msgid "Show next months"
+msgstr "Показывать следующих месяцев"
+
+#: declu.xshowpreviousmonths
+msgid "Show previous months"
+msgstr "Показывать предыдущих месяцев"
+
 #: declu.xstartbuttontext
 msgid "Start"
 msgstr ""
@@ -63,6 +75,45 @@ msgstr "Как обычное окно"
 #: declu.xzorderstayontop
 msgid "Stay at the top of other windows"
 msgstr "Оставаться поверх других окон"
+
+#: tfrmcolor.btncancel.caption
+#, fuzzy
+msgctxt "tfrmcolor.btncancel.caption"
+msgid "Cancel"
+msgstr "Отменить"
+
+#: tfrmcolor.btnok.caption
+msgctxt "tfrmcolor.btnok.caption"
+msgid "OK"
+msgstr ""
+
+#: tfrmcolor.caption
+msgid "Select color"
+msgstr ""
+
+#: tfrmcolor.label1.caption
+msgid "R"
+msgstr ""
+
+#: tfrmcolor.label2.caption
+msgid "G"
+msgstr ""
+
+#: tfrmcolor.label3.caption
+msgid "B"
+msgstr ""
+
+#: tfrmcolor.label4.caption
+msgid "H"
+msgstr ""
+
+#: tfrmcolor.label5.caption
+msgid "L"
+msgstr ""
+
+#: tfrmcolor.label6.caption
+msgid "S"
+msgstr ""
 
 #: tfrmdescal.caption
 msgid "Desktop Calendar"
@@ -85,10 +136,12 @@ msgid "Weekend font color"
 msgstr "Цвет шрифта выходных"
 
 #: tfrmsets.btn_cancel.caption
+msgctxt "tfrmsets.btn_cancel.caption"
 msgid "Cancel"
 msgstr "Отменить"
 
 #: tfrmsets.btn_ok.caption
+msgctxt "tfrmsets.btn_ok.caption"
 msgid "OK"
 msgstr ""
 
@@ -107,14 +160,6 @@ msgstr "Включить эффект Aero Glass"
 #: tfrmsets.chbfilltoday.caption
 msgid "Fill mark with color"
 msgstr "Залить метку цветом"
-
-#: tfrmsets.chbnextmonth.caption
-msgid "Show next month  "
-msgstr "Показывать следующий месяц"
-
-#: tfrmsets.chbprevmonth.caption
-msgid "Show previous month  "
-msgstr "Показывать предыдущий месяц"
 
 #: tfrmsets.label1.caption
 msgid "Cell size:"
@@ -145,7 +190,7 @@ msgid "Licensed under LGPL 2.1"
 msgstr "Лицензия LGPL 2.1"
 
 #: tfrmsets.lbltitle.caption
-msgid "Descal"
+msgid "Descal (x64)"
 msgstr ""
 
 #: tfrmsets.rgposition.caption

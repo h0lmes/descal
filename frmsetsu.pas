@@ -5,7 +5,7 @@ interface
 uses
   Windows, SysUtils, Classes, Graphics, Controls, Forms, DefaultTranslator,
   Dialogs, StdCtrls, ComCtrls, ExtCtrls, Buttons,
-  declu, gdip_gfx, dwm_unit, frmcoloru;
+  declu, gfx, dwm_unit, frmcoloru;
 
 type
 
@@ -14,8 +14,6 @@ type
   Tfrmsets = class(TForm)
     btnWeekendFontColor: TBitBtn;
     btnTodayMarkColor: TBitBtn;
-    chbPrevMonth: TCheckBox;
-    chbNextMonth: TCheckBox;
     chbFillToday: TCheckBox;
     Label1: TLabel;
     Label2: TLabel;
@@ -46,8 +44,6 @@ type
     procedure btnTodayMarkColorClick(Sender: TObject);
     procedure btnWeekendFontColorClick(Sender: TObject);
     procedure chbFillTodayChange(Sender: TObject);
-    procedure chbNextMonthChange(Sender: TObject);
-    procedure chbPrevMonthChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btn_cancelClick(Sender: TObject);
     procedure chbBlurClick(Sender: TObject);
@@ -84,7 +80,7 @@ class procedure Tfrmsets.StartForm(APageIndex: integer);
 begin
   if not assigned(sets) then
   begin
-    messagebox(application.mainform.handle, 'Settings container does not exist', 'Descal.frmSets.StartForm', mb_iconexclamation);
+    messagebox(application.mainform.handle, 'Settings container does not exist', 'frmSets.StartForm', mb_iconexclamation);
     exit;
   end;
 
@@ -121,17 +117,16 @@ begin
   lv.ItemIndex := PageIndex;
 
   toolu.GetFileVersion(paramstr(0), maj, min, rel, build);
-  lblTitle.Caption:= 'Descal  ' + inttostr(maj) + '.' + inttostr(min) + '.' + inttostr(rel);
+
+  {$ifdef CPU64}
+  lblTitle.Caption:= 'Descal  ' + inttostr(maj) + '.' + inttostr(min) + '.' + inttostr(rel) + ' (64 bit)';
+  {$else CPU64}
+  lblTitle.Caption:= 'Descal  ' + inttostr(maj) + '.' + inttostr(min) + '.' + inttostr(rel) + ' (32 bit)';
+  {$endif CPU64}
 
   // general //
   cbAutoRun.checked := toolu.CheckAutoRun;
   rgPosition.ItemIndex := sets.container.Position;
-  chbPrevMonth.OnChange := nil;
-  chbPrevMonth.Checked := sets.container.PrevMonth;
-  chbPrevMonth.OnChange := chbPrevMonthChange;
-  chbNextMonth.OnChange := nil;
-  chbNextMonth.Checked := sets.container.NextMonth;
-  chbNextMonth.OnChange := chbNextMonthChange;
 
   // style
   chbBlur.Enabled := dwm.IsCompositionEnabled;
@@ -204,18 +199,6 @@ end;
 procedure Tfrmsets.rgPositionSelectionChanged(Sender: TObject);
 begin
   sets.container.Position := rgPosition.ItemIndex;
-  Apply;
-end;
-//------------------------------------------------------------------------------
-procedure Tfrmsets.chbPrevMonthChange(Sender: TObject);
-begin
-  sets.container.PrevMonth := chbPrevMonth.Checked;
-  Apply;
-end;
-//------------------------------------------------------------------------------
-procedure Tfrmsets.chbNextMonthChange(Sender: TObject);
-begin
-  sets.container.NextMonth := chbNextMonth.Checked;
   Apply;
 end;
 //------------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 object frmsets: Tfrmsets
-  Left = 554
+  Left = 632
   Height = 469
-  Top = 342
+  Top = 377
   Width = 478
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
@@ -18,17 +18,17 @@ object frmsets: Tfrmsets
   OnKeyDown = FormKeyDown
   OnShow = FormShow
   Position = poScreenCenter
-  LCLVersion = '1.0.10.0'
+  LCLVersion = '1.6.0.4'
   Visible = True
   object pages: TPageControl
     Left = 100
     Height = 413
     Top = 8
     Width = 370
-    ActivePage = tsStyle
+    ActivePage = tsGeneral
     MultiLine = True
     ShowTabs = False
-    TabIndex = 1
+    TabIndex = 0
     TabOrder = 1
     Options = [nboMultiLine]
     object tsGeneral: TTabSheet
@@ -63,24 +63,6 @@ object frmsets: Tfrmsets
         OnSelectionChanged = rgPositionSelectionChanged
         TabOrder = 1
       end
-      object chbPrevMonth: TCheckBox
-        Left = 12
-        Height = 19
-        Top = 166
-        Width = 129
-        Caption = 'Show previous month  '
-        OnChange = chbPrevMonthChange
-        TabOrder = 2
-      end
-      object chbNextMonth: TCheckBox
-        Left = 12
-        Height = 19
-        Top = 193
-        Width = 110
-        Caption = 'Show next month  '
-        OnChange = chbNextMonthChange
-        TabOrder = 3
-      end
     end
     object tsStyle: TTabSheet
       Caption = 'Style'
@@ -98,9 +80,9 @@ object frmsets: Tfrmsets
       end
       object lblBackgroundTransparency: TLabel
         Left = 10
-        Height = 14
+        Height = 13
         Top = 213
-        Width = 99
+        Width = 98
         Caption = 'Background opacity:'
         ParentColor = False
       end
@@ -111,8 +93,9 @@ object frmsets: Tfrmsets
         Width = 225
         Frequency = 20
         Max = 255
+        Min = 5
         OnChange = tbBaseAlphaChange
-        Position = 0
+        Position = 5
         ScalePos = trLeft
         ShowSelRange = False
         TabOrder = 1
@@ -155,17 +138,17 @@ object frmsets: Tfrmsets
       end
       object Label1: TLabel
         Left = 11
-        Height = 14
+        Height = 13
         Top = 273
-        Width = 43
+        Width = 42
         Caption = 'Cell size:'
         ParentColor = False
       end
       object Label2: TLabel
         Left = 10
-        Height = 14
+        Height = 13
         Top = 328
-        Width = 37
+        Width = 36
         Caption = 'Border:'
         ParentColor = False
       end
@@ -214,17 +197,17 @@ object frmsets: Tfrmsets
       object lblTitle: TLabel
         Left = 5
         Height = 36
-        Top = 48
+        Top = 15
         Width = 346
         Alignment = taCenter
         AutoSize = False
-        Caption = 'Descal'
+        Caption = 'Descal (x64)'
         ParentColor = False
       end
       object lblCredits: TLabel
         Left = 5
         Height = 25
-        Top = 103
+        Top = 70
         Width = 346
         Alignment = taCenter
         AutoSize = False
@@ -234,7 +217,7 @@ object frmsets: Tfrmsets
       object lblCredits1: TLabel
         Left = 5
         Height = 25
-        Top = 133
+        Top = 100
         Width = 346
         Alignment = taCenter
         AutoSize = False
@@ -244,7 +227,7 @@ object frmsets: Tfrmsets
       object lblCredits3: TLabel
         Left = 5
         Height = 25
-        Top = 163
+        Top = 130
         Width = 346
         Alignment = taCenter
         AutoSize = False
@@ -254,7 +237,7 @@ object frmsets: Tfrmsets
       object lblCredits4: TLabel
         Left = 5
         Height = 25
-        Top = 193
+        Top = 160
         Width = 346
         Alignment = taCenter
         AutoSize = False

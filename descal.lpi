@@ -19,6 +19,7 @@
     <VersionInfo>
       <UseVersionInfo Value="True"/>
       <MajorVersionNr Value="1"/>
+      <MinorVersionNr Value="1"/>
       <StringTable ProductVersion=""/>
     </VersionInfo>
     <BuildModes Count="1">
@@ -39,11 +40,10 @@
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="11">
+    <Units Count="12">
       <Unit0>
         <Filename Value="descal.lpr"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="descal"/>
       </Unit0>
       <Unit1>
         <Filename Value="descal_unit.pas"/>
@@ -51,17 +51,14 @@
         <ComponentName Value="frmdescal"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <UnitName Value="descal_unit"/>
       </Unit1>
       <Unit2>
         <Filename Value="declu.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="declu"/>
       </Unit2>
       <Unit3>
         <Filename Value="dwm_unit.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="dwm_unit"/>
       </Unit3>
       <Unit4>
         <Filename Value="frmColorU.pas"/>
@@ -69,32 +66,26 @@
         <ComponentName Value="frmColor"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <UnitName Value="frmColorU"/>
       </Unit4>
       <Unit5>
-        <Filename Value="gdip_gfx.pas"/>
+        <Filename Value="gfx.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="gdip_gfx"/>
       </Unit5>
       <Unit6>
         <Filename Value="GDIPAPI.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="GDIPAPI"/>
       </Unit6>
       <Unit7>
         <Filename Value="notifieru.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="notifieru"/>
       </Unit7>
       <Unit8>
         <Filename Value="setsu.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="setsu"/>
       </Unit8>
       <Unit9>
         <Filename Value="toolu.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="toolu"/>
       </Unit9>
       <Unit10>
         <Filename Value="frmsetsu.pas"/>
@@ -102,8 +93,11 @@
         <ComponentName Value="frmsets"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <UnitName Value="frmsetsu"/>
       </Unit10>
+      <Unit11>
+        <Filename Value="loggeru.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit11>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -123,7 +117,7 @@
     </Parsing>
     <CodeGeneration>
       <SmartLinkUnit Value="True"/>
-      <TargetOS Value="win32"/>
+      <TargetOS Value="win64"/>
     </CodeGeneration>
     <Linking>
       <Debugging>
@@ -136,12 +130,6 @@
         </Win32>
       </Options>
     </Linking>
-    <Other>
-      <CompilerMessages>
-        <MsgFileName Value=""/>
-      </CompilerMessages>
-      <CompilerPath Value="$(CompPath)"/>
-    </Other>
   </CompilerOptions>
   <Debugging>
     <Exceptions Count="3">

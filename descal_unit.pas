@@ -7,9 +7,17 @@ interface
 uses
   jwaWindows, Windows, Messages, Classes, SysUtils, LCLType,
   FileUtil, DateUtils, Math, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-  declu, toolu, GDIPAPI, gdip_gfx, dwm_unit, setsu, frmsetsu, notifieru;
+  declu, toolu, loggeru, GDIPAPI, gfx, dwm_unit, setsu, frmsetsu, notifieru;
 
 type
+  TMonth = record
+    Visible: boolean;
+    TheDate: TDateTime;
+    X: integer;
+    Y: integer;
+    Width: integer;
+    Height: integer;
+  end;
 
   { Tfrmdescal }
 
@@ -20,16 +28,18 @@ type
     procedure FormMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure trayiconMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
   private
-    FWndInstance: TFarProc;
-    FPrevWndProc: TFarProc;
+    FPrevWndProc: WNDPROC;
     LastMouseHookPoint: TPoint;
     MouseOver: boolean;
     FW: integer;
     FH: integer;
     AllowClose: boolean;
-    hMenu: cardinal;
+    hMenu: THandle;
+    months: array [-11..12] of TMonth;
+    FRowCount: integer;
+    FColCount: integer;
     procedure GetMonthSize(dte: TDate; out w, h: integer);
-    procedure DrawMonth(dte: TDate; hgdip: pointer; x, y: integer; DrawSplit: boolean);
+    procedure DrawMonth(dte: TDate; hgdip: pointer; x, y: integer);
     procedure RegisterRawInput;
     procedure NativeWndProc(var message: TMessage);
     function CloseQuery: integer;
@@ -45,13 +55,12 @@ type
     procedure MouseEnter;
     procedure MouseLeave;
     function ContextMenu: boolean;
-    function GetHMenu: uint;
+    function GetHMenu: THandle;
   public
-    procedure err(where: string; e: Exception);
-    procedure notify(message: string; silent: boolean = False);
-    procedure alert(message: string);
     procedure Init;
     procedure Draw;
+    procedure err(where: string; e: Exception);
+    procedure notify(message: string; silent: boolean = False);
   end;
 
 var
@@ -59,6 +68,24 @@ var
 
 implementation
 {$R *.lfm}
+//------------------------------------------------------------------------------
+function MainWindowProc(wnd: HWND; message: uint; wParam: WPARAM; lParam: LPARAM): LRESULT; stdcall;
+var
+  inst: Tfrmdescal;
+  msg: TMessage;
+begin
+  inst := Tfrmdescal(GetWindowLongPtr(wnd, GWL_USERDATA));
+  if assigned(inst) then
+  begin
+    msg.msg := message;
+    msg.wParam := wParam;
+    msg.lParam := lParam;
+    inst.NativeWndProc(msg);
+    result := msg.Result;
+  end
+  else
+    result := DefWindowProc(wnd, message, wParam, lParam);
+end;
 //------------------------------------------------------------------------------
 procedure Tfrmdescal.Init;
 begin
@@ -68,20 +95,14 @@ begin
   Application.OnDeactivate := AppDeactivate;
 
   // workaround for Windows message handling in LCL //
-  AddLog('Init.NativeWndProc');
-  FWndInstance := MakeObjectInstance(NativeWndProc);
-  FPrevWndProc := Pointer(GetWindowLong(Handle, GWL_WNDPROC));
-  SetWindowLong(Handle, GWL_WNDPROC, LongInt(FWndInstance));
+  SetWindowLongPtr(Handle, GWL_USERDATA, PtrUInt(self));
+  FPrevWndProc := Pointer(GetWindowLongPtr(Handle, GWL_WNDPROC));
+  SetWindowLongPtr(Handle, GWL_WNDPROC, PtrInt(@MainWindowProc));
+  dwm.ExcludeFromPeek(Handle);
 
-  DWM.ExcludeFromPeek(Handle);
-
-  AddLog('Init.RegisterRawInput');
   RegisterRawInput;
-
   if sets.X >= 0 then Left := sets.X;
   if sets.Y >= 0 then Top := sets.Y;
-
-  AddLog('Init.Draw');
   Draw;
 
   // timers //
@@ -95,42 +116,110 @@ begin
     end;
 end;
 //------------------------------------------------------------------------------
-procedure Tfrmdescal.Draw;
+procedure Tfrmdescal.GetMonthSize(dte: TDate; out w, h: integer);
 var
-  hgdip, hpath, hbrush: Pointer;
-  bmp: _SimpleBitmap;
-  rgn: HRGN;
-  w, h1, h2, h3, y: integer;
+  cols, rows: integer;
 begin
-  h1 := 0;
-  h3 := 0;
-  GetMonthSize(Date, w, h2);
-  FW := sets.container.Border * 2 + w;
-  if sets.container.PrevMonth then GetMonthSize(IncMonth(Date, -1), w, h1);
-  if sets.container.NextMonth then GetMonthSize(IncMonth(Date, 1), w, h3);
+  cols := 7;
+  rows := ceil((DayOfTheWeek(StartOfTheMonth(dte)) - 1 + DaysInMonth(dte)) / cols);
+  w := cols * sets.container.CellSize + sets.container.CellSize;
+  h := rows * sets.container.CellSize;
+end;
+//------------------------------------------------------------------------------
+procedure Tfrmdescal.Draw;
+  function GetRow(i: integer): integer;
+  begin
+    result := floor((sets.container.PrevMonths + i) / sets.container.Columns);
+  end;
+  function GetCol(i: integer): integer;
+  begin
+    result := (sets.container.PrevMonths + i) mod sets.container.Columns;
+  end;
+var
+  i: integer;
+  hgdip: Pointer = nil;
+  hbrush: Pointer = nil;
+  hpen: Pointer;
+  bmp: _SimpleBitmap;
+  x: integer;
+  y: integer;
+  number: integer;
+  row, col: integer;
+  rowHeight: array [0..23] of integer;
+begin
+  // select visible months and calc dimensions
+  for i := -11 to 12 do
+  begin
+    months[i].Visible := (-sets.container.PrevMonths <= i) and (i <= sets.container.NextMonths);
+    if months[i].Visible then
+    begin
+      months[i].TheDate := IncMonth(Date, i);
+      GetMonthSize(months[i].TheDate, months[i].Width, months[i].Height);
+    end;
+  end;
+  FRowCount := ceil((sets.container.PrevMonths + 1 + sets.container.NextMonths) / sets.container.Columns);
+  FColCount := min(sets.container.PrevMonths + 1 + sets.container.NextMonths, sets.container.Columns);
 
-  FH := sets.container.Border;
-  if sets.container.PrevMonth then inc(FH, h1 + sets.container.Space);
-  inc(FH, h2);
-  if sets.container.NextMonth then inc(FH, sets.container.Space + h3);
+  // calc max height for each row
+  for row := 0 to 23 do rowHeight[row] := 0;
+  for i := -11 to 12 do
+    if months[i].Visible then
+    begin
+      row := GetRow(i);
+      if row >= 0 then
+        if rowHeight[row] < months[i].Height then rowHeight[row] := months[i].Height;
+    end;
+
+  // arrange months
+  x := sets.container.Border;
+  y := sets.container.Border div 2;
+  number := 1;
+  for i := -11 to 12 do
+    if months[i].Visible then
+    begin
+      months[i].X := x;
+      months[i].Y := y;
+      row := GetRow(i);
+      if row >= 0 then months[i].Height := rowHeight[row];
+      if number mod sets.container.Columns = 0 then
+      begin
+        inc(y, months[i].Height + sets.container.Space);
+        x := sets.container.Border;
+      end
+      else
+        inc(x, months[i].Width + sets.container.Space * 3 div 2);
+      inc(number);
+    end;
+
+  // calc overall size
+  FW := 0;
+  FH := 0;
+  for i := -11 to 12 do
+    if months[i].Visible then
+    begin
+      if FW < months[i].X + months[i].Width then FW := months[i].X + months[i].Width;
+      if FH < months[i].Y + months[i].Height then FH := months[i].Y + months[i].Height;
+    end;
+  FW := FW + sets.container.Border;
+  FH := FH + sets.container.Border div 2;
   Width := FW;
   Height := FH;
 
-  // prepare drawing //
+  // prepare a bitmap //
   try
     bmp.topleft.x := Left;
     bmp.topleft.y := Top;
     bmp.Width := FW;
     bmp.Height := FH;
-    if not gdip_gfx.CreateBitmap(bmp) then
+    if not gfx.CreateBitmap(bmp, Handle) then
     begin
-      err('Draw.Prepare CreateBitmap failed', nil);
+      err('Draw.CreateBitmap failed', nil);
       exit;
     end;
     hgdip := CreateGraphics(bmp.dc, 0);
     if not assigned(hgdip) then
     begin
-      err('Draw.Prepare CreateGraphics failed', nil);
+      err('Draw.CreateGraphics failed', nil);
       exit;
     end;
     GdipSetTextRenderingHint(hgdip, TextRenderingHintAntiAlias);
@@ -143,89 +232,61 @@ begin
     end;
   end;
 
-  // background //
+  // draw background //
   try
-    GdipCreatePath(FillModeAlternate, hpath);
-    GdipStartPathFigure(hpath);
-
-    GdipAddPathLine(hpath, sets.container.Radius, 0, FW - sets.container.Radius - 1, 0);
-    GdipAddPathArc(hpath, FW - sets.container.Radius * 2 - 1, 0, sets.container.Radius * 2, sets.container.Radius * 2, 270, 90);
-
-    GdipAddPathLine(hpath, FW - 1, sets.container.Radius, FW - 1, FH - sets.container.Radius - 1);
-    GdipAddPathArc(hpath, FW - sets.container.Radius * 2 - 1, FH - sets.container.Radius * 2 - 1, sets.container.Radius * 2, sets.container.Radius * 2, 0, 90);
-
-    GdipAddPathLine(hpath, FW - sets.container.Radius - 1, FH - 1, sets.container.Radius, FH - 1);
-    GdipAddPathArc(hpath, 0, FH - sets.container.Radius * 2 - 1, sets.container.Radius * 2, sets.container.Radius * 2, 90, 90);
-
-    GdipAddPathLine(hpath, 0, FH - sets.container.Radius - 1, 0, sets.container.Radius);
-    GdipAddPathArc(hpath, 0, 0, sets.container.Radius * 2, sets.container.Radius * 2, 180, 90);
-
-    GdipClosePathFigure(hpath);
-
     GdipCreateSolidFill($101010 + sets.container.BaseAlpha shl 24, hbrush);
-    GdipFillPath(hgdip, hbrush, hpath);
+    GdipFillRectangleI(hgdip, hbrush, 0, 0, FW, FH);
     GdipDeleteBrush(hbrush);
-
-    GdipDeletePath(hpath);
   except
-    on e: Exception do err('Draw.Backgroud', e);
+    on e: Exception do err('Draw.Backgroud failed', e);
   end;
 
-  // months //
+  // draw months //
+  for i := -11 to 12 do
+    if months[i].Visible then DrawMonth(months[i].TheDate, hgdip, months[i].X, months[i].Y);
+
+  // draw lines //
+  GdipCreatePen1($30ffffff, 1, UnitPixel, hpen);
   y := sets.container.Border div 2;
-  if sets.container.PrevMonth then
+  row := 0;
+  while row < FRowCount - 1 do
   begin
-    DrawMonth(IncMonth(Date, -1), hgdip, sets.container.Border, y, true);
-    inc(y, h1 + sets.container.Space);
+    inc(y, rowHeight[row] + sets.container.Space div 2);
+    GdipDrawLineI(hgdip, hpen, sets.container.Border, y, FW - sets.container.Border, y);
+    inc(y, sets.container.Space - sets.container.Space div 2);
+    inc(row);
   end;
-  DrawMonth(Date, hgdip, sets.container.Border, y, sets.container.NextMonth);
-  inc(y, h2 + sets.container.Space);
-  if sets.container.NextMonth then DrawMonth(IncMonth(Date, 1), hgdip, sets.container.Border, y, false);
+  //GdipDrawLineI(hgdip, hpen, X + w + sets.container.Space div 2, sets.container.Border div 2, X + w + sets.container.Space div 2, FH - sets.container.Border div 2);
+  GdipDeletePen(hpen);
 
   // update window //
   try
-    gdip_gfx.UpdateLWindow(Handle, bmp, 255);
-    if sets.container.Blur and dwm.IsCompositionEnabled then
-    begin
-      rgn := CreateRoundRectRgn(1, 1, FW, FH, sets.container.Radius * 2, sets.container.Radius * 2);
-      DWM.EnableBlurBehindWindow(Handle, rgn);
-      DeleteObject(rgn);
-    end
-    else
-      DWM.DisableBlurBehindWindow(Handle);
+    gfx.UpdateLWindow(Handle, bmp, 255);
+    if sets.container.Blur and dwm.IsCompositionEnabled then DWM.EnableBlurBehindWindow(Handle, 0)
+    else DWM.DisableBlurBehindWindow(Handle);
   except
-    on e: Exception do err('Draw.Show', e);
+    on e: Exception do err('Draw.Show failed', e);
   end;
 
   // cleanup //
   try
     GdipDeleteGraphics(hgdip);
-    gdip_gfx.DeleteBitmap(bmp);
+    gfx.DeleteBitmap(bmp);
   except
-    on e: Exception do err('Draw.Cleanup', e);
+    on e: Exception do err('Draw.Cleanup failed', e);
   end;
 
   case sets.container.Position of
-    1: SetWindowPos(Handle, HWND_NOTOPMOST, 0, 0, 0, 0, swp_nosize + swp_nomove + swp_noactivate);
-    2: SetWindowPos(Handle, HWND_TOPMOST, 0, 0, 0, 0, swp_nosize + swp_nomove + swp_noactivate);
+    1: SetWindowPos(Handle, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOSIZE + SWP_NOMOVE + SWP_NOACTIVATE);
+    2: SetWindowPos(Handle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE + SWP_NOMOVE + SWP_NOACTIVATE);
   end;
 end;
 //------------------------------------------------------------------------------
-procedure Tfrmdescal.GetMonthSize(dte: TDate; out w, h: integer);
-var
-  cols, rows: integer;
-begin
-  cols := 7;
-  rows := ceil((DayOfTheWeek(StartOfTheMonth(dte)) - 1 + DaysInMonth(dte)) / cols);
-  w := cols * sets.container.CellSize + sets.container.CellSize;
-  h := rows * sets.container.CellSize;
-end;
-//------------------------------------------------------------------------------
-procedure Tfrmdescal.DrawMonth(dte: TDate; hgdip: pointer; x, y: integer; DrawSplit: boolean);
+procedure Tfrmdescal.DrawMonth(dte: TDate; hgdip: pointer; x, y: integer);
 var
   hfont, hfont_family, hformat, hbrush, hpen: Pointer;
   cell: TRectF;
-  i, ACol, ARow, h: integer;
+  i, ACol, ARow, h, w: integer;
   FSOM: TDateTime;
   FDIM: integer;
   FCurDay: integer;
@@ -239,6 +300,7 @@ begin
   FCols := 7;
   FRows := ceil((FStartCol - 1 + FDIM) / FCols);
   h := FRows * sets.container.CellSize;
+  w := FCols * sets.container.CellSize + sets.container.CellSize;
 
   // init.fonts //
   try
@@ -327,14 +389,6 @@ begin
     end;
   end;
 
-  // month split line //
-  if DrawSplit then
-  begin
-    GdipCreatePen1($30ffffff, 1, UnitPixel, hpen);
-    GdipDrawLineI(hgdip, hpen, sets.container.Border, Y + h + sets.container.Space div 2, FW - sets.container.Border, Y + h + sets.container.Space div 2);
-    GdipDeletePen(hpen);
-  end;
-
   // cleanup //
   try
     GdipDeleteStringFormat(hformat);
@@ -375,43 +429,56 @@ procedure Tfrmdescal.RegisterRawInput;
 var
   rid: RAWINPUTDEVICE;
 begin
-  Rid.usUsagePage := 1;
-  Rid.usUsage := 2;
-  Rid.dwFlags := RIDEV_INPUTSINK;
-  Rid.hwndTarget := Handle;
-  if not RegisterRawInputDevices(@Rid, 1, sizeof(Rid)) then notify('RegisterRawInput failed!');
+  rid.usUsagePage := 1;
+  rid.usUsage := 2;
+  rid.dwFlags := RIDEV_INPUTSINK;
+  rid.hwndTarget := Handle;
+  if not RegisterRawInputDevices(@rid, 1, sizeof(rid)) then notify('RegisterRawInput failed!');
 end;
 //------------------------------------------------------------------------------
 procedure Tfrmdescal.NativeWndProc(var message: TMessage);
 var
-  dwSize: uint;
+  dwSize: DWORD;
   ri: RAWINPUT;
 begin
+  message.result := 0;
+
+  if message.msg = WM_INPUT then
+  begin
+     dwSize := 0;
+     GetRawInputData(message.lParam, RID_INPUT, nil, dwSize, sizeof(RAWINPUTHEADER));
+     if GetRawInputData(message.lParam, RID_INPUT, @ri, dwSize, sizeof(RAWINPUTHEADER)) = dwSize then
+     begin
+       if ri.header.dwType = RIM_TYPEMOUSE then WHMouseMove(0);
+     end
+     else raise Exception.Create('in NativeWndProc. Invalid size of RawInputData');
+     exit;
+  end;
+
   case message.msg of
     WM_WINDOWPOSCHANGING:
-      if sets.container.Position = 0 then PWINDOWPOS(message.lParam)^.hwndInsertAfter := HWND_BOTTOM;
-    WM_INPUT:
-    begin
-      dwSize := 0;
-      GetRawInputData(message.lParam, RID_INPUT, nil, dwSize, sizeof(RAWINPUTHEADER));
-      if GetRawInputData(message.lParam, RID_INPUT, @ri, dwSize, sizeof(RAWINPUTHEADER)) <> dwSize then
-        raise Exception.Create('in Base.NativeWndProc. Invalid size of RawInputData');
-      if (ri.header.dwType = RIM_TYPEMOUSE) then
       begin
-        //if ri.mouse.usButtonData and RI_MOUSE_LEFT_BUTTON_DOWN <> 0 then WHButtonDown(1);
-        //if ri.mouse.usButtonData and RI_MOUSE_RIGHT_BUTTON_DOWN <> 0 then WHButtonDown(2);
-        //if ri.mouse.usButtonData and RI_MOUSE_Left_BUTTON_UP <> 0 then WHButtonUp(1);
-        WHMouseMove(0);
+        if sets.container.Position = 0 then PWINDOWPOS(message.lParam)^.hwndInsertAfter := HWND_BOTTOM;
+        message.result := CallWindowProc(FPrevWndProc, Handle, message.Msg, message.wParam, message.lParam);
       end;
-    end;
     WM_TIMER : WMTimer(message);
     WM_COMMAND : WMCommand(message);
     WM_QUERYENDSESSION : message.Result := CloseQuery;
     WM_DISPLAYCHANGE : WMDisplayChange(message);
     WM_SETTINGCHANGE : WMSettingChange(message);
     WM_DWMCOMPOSITIONCHANGED : WMCompositionChanged(message);
+    else
+      message.result := CallWindowProc(FPrevWndProc, Handle, message.Msg, message.wParam, message.lParam);
   end;
-  with message do result := CallWindowProc(FPrevWndProc, Handle, Msg, wParam, lParam);
+end;
+//------------------------------------------------------------------------------
+procedure Tfrmdescal.WMTimer(var msg: TMessage);
+begin
+  try
+    if msg.WParam = ID_SLOWTIMER then Draw;
+  except
+    on e: Exception do err('WMTimer', e);
+  end;
 end;
 //------------------------------------------------------------------------------
 function Tfrmdescal.CloseQuery: integer;
@@ -427,7 +494,7 @@ begin
     KillTimer(handle, ID_SLOWTIMER);
     if assigned(sets) then sets.Free;
   except
-    on e: Exception do messagebox(handle, pchar(e.message), 'Base.Close.Free', mb_iconexclamation);
+    on e: Exception do messagebox(handle, pchar(e.message), 'Close.Free', mb_iconexclamation);
   end;
   result := 1;
 end;
@@ -508,17 +575,37 @@ begin
   GetCursorPos(pt);
   GetHMenu;
   SetForegroundWindow(handle);
-  msg.WParam := uint(TrackPopupMenuEx(hMenu, TPM_RETURNCMD, pt.x, pt.y, handle, nil));
+  msg.WParam := WPARAM(TrackPopupMenuEx(hMenu, TPM_RETURNCMD, pt.x, pt.y, Handle, nil));
   WMCommand(msg);
-  Result := True;
+  Result := true;
 end;
 //------------------------------------------------------------------------------
-function Tfrmdescal.GetHMenu: uint;
+function Tfrmdescal.GetHMenu: THandle;
+var
+  i: integer;
+  menuPrev, menuNext, menuCols: HMENU;
 begin
   if IsMenu(hMenu) then DestroyMenu(hMenu);
+
+  menuPrev := CreatePopupMenu;
+  for i := 0 to 11 do
+    AppendMenuW(menuPrev, MF_STRING + MF_CHECKED * integer(i = sets.container.PrevMonths), $f100 + i, pwchar(WideString(inttostr(i))));
+
+  menuNext := CreatePopupMenu;
+  for i := 0 to 12 do
+    AppendMenuW(menuNext, MF_STRING + MF_CHECKED * integer(i = sets.container.NextMonths), $f200 + i, pwchar(WideString(inttostr(i))));
+
+  menuCols := CreatePopupMenu;
+  for i := 1 to 12 do
+    AppendMenuW(menuCols, MF_STRING + MF_CHECKED * integer(i = sets.container.Columns), $f300 + i, pwchar(WideString(inttostr(i))));
+
   hMenu := CreatePopupMenu;
-  AppendMenu(hMenu, MF_STRING, $f002, pchar(UTF8ToAnsi(XProgramSettings)));
-  AppendMenu(hMenu, MF_STRING, $f001, pchar(UTF8ToAnsi(XExit)));
+  AppendMenuW(hMenu, MF_STRING + MF_POPUP, menuPrev, pwchar(UTF8Decode(XShowPreviousMonths)));
+  AppendMenuW(hMenu, MF_STRING + MF_POPUP, menuNext, pwchar(UTF8Decode(XShowNextMonths)));
+  AppendMenuW(hMenu, MF_STRING + MF_POPUP, menuCols, pwchar(UTF8Decode(XColumns)));
+  AppendMenuW(hMenu, MF_SEPARATOR, 0, '-');
+  AppendMenuW(hMenu, MF_STRING, $f002, pwchar(UTF8Decode(XProgramSettings)));
+  AppendMenuW(hMenu, MF_STRING, $f001, pwchar(UTF8Decode(XExit)));
   result := hMenu;
 end;
 //------------------------------------------------------------------------------
@@ -536,19 +623,25 @@ begin
             Close;
           end;
         $f002: Tfrmsets.StartForm(0);
+        $f100..$f10c:
+          begin
+            sets.container.PrevMonths := msg.wparam - $f100;
+            Draw;
+          end;
+        $f200..$f20c:
+          begin
+            sets.container.NextMonths := msg.wparam - $f200;
+            Draw;
+          end;
+        $f301..$f30c:
+          begin
+            sets.container.Columns := msg.wparam - $f300;
+            Draw;
+          end;
       end;
     end;
   except
-    on e: Exception do err('Base.WMCommand', e);
-  end;
-end;
-//------------------------------------------------------------------------------
-procedure Tfrmdescal.WMTimer(var msg: TMessage);
-begin
-  try
-    if msg.WParam = ID_SLOWTIMER then Draw;
-  except
-    on e: Exception do err('Base.WMTimer', e);
+    on e: Exception do err('WMCommand', e);
   end;
 end;
 //------------------------------------------------------------------------------
@@ -565,15 +658,13 @@ begin
 end;
 //------------------------------------------------------------------------------
 procedure Tfrmdescal.notify(message: string; silent: boolean);
+var
+  windowCenter: windows.TPoint;
 begin
-  if assigned(Notifier) then Notifier.Message(message, 0, False, silent)
+  windowCenter.x := Left + FW div 2;
+  windowCenter.y := Top + FH div 2;
+  if assigned(Notifier) then Notifier.Message(message, screen.MonitorFromPoint(windowCenter).WorkareaRect, False, silent)
   else if not silent then messagebox(handle, pchar(message), nil, mb_iconerror);
-end;
-//------------------------------------------------------------------------------
-procedure Tfrmdescal.alert(message: string);
-begin
-  if assigned(notifier) then notifier.message(message, 0, True, False)
-  else messagebox(handle, pchar(message), nil, mb_iconerror);
 end;
 //------------------------------------------------------------------------------
 end.

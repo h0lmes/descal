@@ -1,6 +1,10 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=UTF-8"
 
+#: declu.xcolumns
+msgid "Columns"
+msgstr ""
+
 #: declu.xerrorcontactdeveloper
 msgid "Contact developer if error is permanent."
 msgstr ""
@@ -40,6 +44,14 @@ msgstr ""
 msgid "Program settings"
 msgstr ""
 
+#: declu.xshownextmonths
+msgid "Show next months"
+msgstr ""
+
+#: declu.xshowpreviousmonths
+msgid "Show previous months"
+msgstr ""
+
 #: declu.xstartbuttontext
 msgid "Start"
 msgstr ""
@@ -54,6 +66,44 @@ msgstr ""
 
 #: declu.xzorderstayontop
 msgid "Stay at the top of other windows"
+msgstr ""
+
+#: tfrmcolor.btncancel.caption
+msgctxt "TFRMCOLOR.BTNCANCEL.CAPTION"
+msgid "Cancel"
+msgstr ""
+
+#: tfrmcolor.btnok.caption
+msgctxt "TFRMCOLOR.BTNOK.CAPTION"
+msgid "OK"
+msgstr ""
+
+#: tfrmcolor.caption
+msgid "Select color"
+msgstr ""
+
+#: tfrmcolor.label1.caption
+msgid "R"
+msgstr ""
+
+#: tfrmcolor.label2.caption
+msgid "G"
+msgstr ""
+
+#: tfrmcolor.label3.caption
+msgid "B"
+msgstr ""
+
+#: tfrmcolor.label4.caption
+msgid "H"
+msgstr ""
+
+#: tfrmcolor.label5.caption
+msgid "L"
+msgstr ""
+
+#: tfrmcolor.label6.caption
+msgid "S"
 msgstr ""
 
 #: tfrmdescal.caption
@@ -77,10 +127,12 @@ msgid "Weekend font color"
 msgstr ""
 
 #: tfrmsets.btn_cancel.caption
+msgctxt "tfrmsets.btn_cancel.caption"
 msgid "Cancel"
 msgstr ""
 
 #: tfrmsets.btn_ok.caption
+msgctxt "tfrmsets.btn_ok.caption"
 msgid "OK"
 msgstr ""
 
@@ -98,14 +150,6 @@ msgstr ""
 
 #: tfrmsets.chbfilltoday.caption
 msgid "Fill mark with color"
-msgstr ""
-
-#: tfrmsets.chbnextmonth.caption
-msgid "Show next month  "
-msgstr ""
-
-#: tfrmsets.chbprevmonth.caption
-msgid "Show previous month  "
 msgstr ""
 
 #: tfrmsets.label1.caption
@@ -137,7 +181,7 @@ msgid "Licensed under LGPL 2.1"
 msgstr ""
 
 #: tfrmsets.lbltitle.caption
-msgid "Descal"
+msgid "Descal (x64)"
 msgstr ""
 
 #: tfrmsets.rgposition.caption

@@ -56,7 +56,7 @@ var
 
 {$t+}
 implementation
-uses gdip_gfx, toolu;
+uses gfx, toolu;
 {$R *.lfm}
 //------------------------------------------------------------------------------
 class function TfrmColor.StartForm(AColor: uint; callback_proc: _proc): boolean;
@@ -117,7 +117,7 @@ procedure TfrmColor.SetColor(AColor: uint);
 begin
   FColor := AColor;
   cbar.OnChange:= nil;
-  cbar.Color:= gdip_gfx.SwapColor(FColor);
+  cbar.Color:= gfx.SwapColor(FColor);
   cbar.OnChange:= cbarChange;
   updrgb;
   updhls;
@@ -127,7 +127,7 @@ procedure TfrmColor.cbarChange(Sender: TObject);
 begin
   updrgb;
   updhls;
-  FColor:= $ff000000 or gdip_gfx.swapcolor(cbar.Color);
+  FColor:= $ff000000 or gfx.swapcolor(cbar.Color);
   if assigned(FCallback) then FCallback(FColor);
 end;
 //------------------------------------------------------------------------------
@@ -184,7 +184,7 @@ begin
   rbrgb.checked := true;
   try
     FColor := $ff000000 + cardinal(strtoint(edr.text)) and $ff shl 16 + cardinal(strtoint(edg.text)) and $ff shl 8 + cardinal(strtoint(edb.text)) and $ff;
-    cbar.Color := gdip_gfx.swapcolor(FColor);
+    cbar.Color := gfx.swapcolor(FColor);
   except end;
 end;
 //------------------------------------------------------------------------------

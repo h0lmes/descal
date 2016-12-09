@@ -9,7 +9,7 @@ object frmdescal: Tfrmdescal
   OnClose = FormClose
   OnMouseDown = FormMouseDown
   OnMouseUp = FormMouseUp
-  LCLVersion = '1.2.4.0'
+  LCLVersion = '1.6.0.4'
   object trayicon: TTrayIcon
     BalloonHint = 'Descal'
     Visible = True

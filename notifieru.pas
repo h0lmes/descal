@@ -2,153 +2,174 @@ unit notifieru;
 
 interface
 
-uses Windows, Messages, Classes, SysUtils, Forms, declu;
+uses Windows, Messages, Classes, SysUtils, Forms,
+  declu, GDIPAPI, gfx, dwm_unit, loggeru, toolu;
+
+const
+  NOTIFIER_FONT_NAME = 'Lucida Console';
+  NOTIFIER_FONT_NAME_ALT = 'Courier New';
+  NOTIFIER_WCLASS = 'TDockNotifierWClass';
 
 type
-  _Notifier = class
+  TNotifier = class
   private
-    hWnd: uint;
-    FWndInstance: TFarProc;
-    FPrevWndProc: TFarProc;
+    FHWnd: HWND;
     FActivating: boolean;
-    x: integer;
-    y: integer;
-    need_x: integer;
-    need_y: integer;
-    awidth: integer;
-    aheight: integer;
-    showtime: uint;
-    active: boolean;
-    alert: boolean;
-    timeout: cardinal;
-    monitor: integer;
-    current_text: string;
+    FX: integer;
+    FY: integer;
+    FXTarget: integer;
+    FYTarget: integer;
+    FW: integer;
+    FH: integer;
+    FShowTime: QWord;
+    FActive: boolean;
+    FAlert: boolean;
+    FTimeout: QWord;
+    FMonitorRect: windows.TRect;
+    FText: WideString;
     procedure err(where: string; e: Exception);
   public
-    texts: TStrings;
+    class procedure Cleanup;
     constructor Create;
     destructor Destroy; override;
-    function GetMonitorRect(monitor: integer): Windows.TRect;
-    procedure Message(Text: string; monitor: integer = 0; alert: boolean = false; silent: boolean = false);
-    procedure Message_Internal(Caption, Text: string; monitor: integer; animate: boolean = True);
+    procedure RegisterWindowItemClass;
+    procedure Message(Text: WideString; monitorRect: windows.TRect; alert: boolean = false; silent: boolean = false);
+    procedure MessageNoLog(Text: WideString; monitorRect: windows.TRect; replace: boolean = false);
+    procedure Message_Internal(Text: WideString; monitorRect: windows.TRect; animate: boolean = True);
     procedure Close;
     procedure Timer;
-    procedure WindowProc(var msg: TMessage);
+    function WindowProc(wnd: HWND; message: uint; wParam: WPARAM; lParam: LPARAM): LRESULT;
   end;
 
-var
-  Notifier: _Notifier;
+var Notifier: TNotifier;
 
 implementation
-uses GDIPAPI, gdip_gfx, toolu, dwm_unit;
 //------------------------------------------------------------------------------
-constructor _Notifier.Create;
+function NotifierClassWindowProc(wnd: HWND; message: uint; wParam: WPARAM; lParam: LPARAM): LRESULT; stdcall;
+var
+  inst: TNotifier;
 begin
-  inherited;
-  active := False;
-  texts := TStringList.Create;
-  current_text := '';
+  inst := TNotifier(GetWindowLongPtr(wnd, GWL_USERDATA));
+  if assigned(inst) then
+    result := inst.WindowProc(wnd, message, wParam, lParam)
+  else
+    result := DefWindowProc(wnd, message, wParam, lParam);
+end;
+//------------------------------------------------------------------------------
+class procedure TNotifier.Cleanup;
+begin
+  if assigned(Notifier) then Notifier.Free;
+  Notifier := nil;
+end;
+//------------------------------------------------------------------------------
+constructor TNotifier.Create;
+begin
+  FActive := false;
+  FText := '';
 
   // create window //
-  hWnd := 0;
+  FHWnd := 0;
   try
-    hWnd := CreateWindowEx(ws_ex_layered or ws_ex_toolwindow, WINITEM_CLASS, nil, ws_popup, 0, 0, 0, 0, 0, 0, hInstance, nil);
-    if IsWindow(hWnd) then
-    begin
-      SetWindowLong(hWnd, GWL_USERDATA, cardinal(self));
-      FWndInstance := MakeObjectInstance(WindowProc);
-      FPrevWndProc := Pointer(GetWindowLong(hWnd, GWL_WNDPROC));
-      SetWindowLong(hWnd, GWL_WNDPROC, LongInt(FWndInstance));
-    end
+    RegisterWindowItemClass;
+    FHWnd := CreateWindowEx(WS_EX_LAYERED or WS_EX_TOOLWINDOW, NOTIFIER_WCLASS, nil, WS_POPUP, -100, -100, 10, 10, 0, 0, hInstance, nil);
+    DWM.ExcludeFromPeek(FHWnd);
+    if IsWindow(FHWnd) then SetWindowLongPtr(FHWnd, GWL_USERDATA, PtrUInt(self))
     else err('Notifier.Create.CreateWindowEx failed', nil);
   except
     on e: Exception do err('Notifier.Create.CreateWindow', e);
   end;
 end;
 //------------------------------------------------------------------------------
-destructor _Notifier.Destroy;
+destructor TNotifier.Destroy;
+begin
+  DestroyWindow(FHWnd);
+end;
+//------------------------------------------------------------------------------
+procedure TNotifier.RegisterWindowItemClass;
+var
+  wndClass: windows.TWndClass;
 begin
   try
-    // restore window proc
-    if assigned(FPrevWndProc) then SetWindowLong(hWnd, GWL_WNDPROC, LongInt(FPrevWndProc));
-    DestroyWindow(hWnd);
-    if assigned(texts) then texts.Free;
-    inherited;
+    wndClass.style          := CS_DBLCLKS;
+    wndClass.lpfnWndProc    := @NotifierClassWindowProc;
+    wndClass.cbClsExtra     := 0;
+    wndClass.cbWndExtra     := 0;
+    wndClass.hInstance      := hInstance;
+    wndClass.hIcon          := 0;
+    wndClass.hCursor        := LoadCursor(0, idc_Arrow);
+    wndClass.hbrBackground  := 0;
+    wndClass.lpszMenuName   := nil;
+    wndClass.lpszClassName  := NOTIFIER_WCLASS;
+    windows.RegisterClass(wndClass);
   except
-    on e: Exception do err('Notifier.Destroy', e);
+    on e: Exception do err('Notifier.RegisterWindowClass', e);
   end;
 end;
 //------------------------------------------------------------------------------
-function _Notifier.GetMonitorRect(monitor: integer): Windows.TRect;
+procedure TNotifier.Message(Text: WideString; monitorRect: windows.TRect; alert: boolean = false; silent: boolean = false);
 begin
-  result.Left := 0;
-  result.Top := 0;
-  result.Right := screen.Width;
-  result.Bottom := screen.Height;
-  if monitor >= screen.MonitorCount then monitor := screen.MonitorCount - 1;
-  if monitor >= 0 then Result := screen.Monitors[monitor].WorkareaRect;
-end;
-//------------------------------------------------------------------------------
-procedure _Notifier.Message(Text: string; monitor: integer = 0; alert: boolean = false; silent: boolean = false);
-begin
-  if alert then AddLog('!' + text) else AddLog(text);
+  if alert then AddLog('!!! ' + text) else AddLog(text);
   try
-    texts.add('[' + formatdatetime('dd/MM/yyyy hh:nn:ss', now) + ']  ' + Text);
-    self.alert := self.alert or alert;
+    self.FAlert := self.FAlert or alert;
 
     if not silent or alert then
     begin
-      timeout := 8000;
-      if length(Text) > 50 then timeout := 15000
-      else if length(Text) > 30 then timeout := 11000;
-      if current_text = '' then current_text := Text
-      else current_text := current_text + #13#10#13#10 + Text;
-      Message_Internal('Terry', current_text, monitor, true);
+      FTimeout := 8000;
+      if length(Text) > 50 then FTimeout := 15000
+      else if length(Text) > 30 then FTimeout := 11000;
+
+      Text := Text + LineEnding + LineEnding + '~ ' + declu.PROGRAM_NAME + '#';
+      if FText = '' then FText := Text
+      else FText := FText + LineEnding + LineEnding + Text;
+      Message_Internal(FText, monitorRect, false);
     end;
   except
     on e: Exception do err('Notifier.Message', e);
   end;
 end;
 //------------------------------------------------------------------------------
-procedure _Notifier.Message_Internal(Caption, Text: string; monitor: integer; animate: boolean = True);
+procedure TNotifier.MessageNoLog(Text: WideString; monitorRect: windows.TRect; replace: boolean = false);
+begin
+  try
+    FTimeout := 8000;
+    if length(Text) > 50 then FTimeout := 15000
+    else if length(Text) > 30 then FTimeout := 11000;
+
+    Text := Text + LineEnding + LineEnding + '~ ' + declu.PROGRAM_NAME + '#';
+    if replace or (FText = '') then FText := Text
+    else FText := FText + LineEnding + LineEnding + Text;
+    Message_Internal(FText, monitorRect, false);
+  except
+    on e: Exception do err('Notifier.MessageNoLog', e);
+  end;
+end;
+//------------------------------------------------------------------------------
+procedure TNotifier.Message_Internal(Text: WideString; monitorRect: windows.TRect; animate: boolean = True);
 var
-  hgdip, path, hbrush, hpen: Pointer;
-  caption_font, message_font, caption_font_family, message_font_family: Pointer;
-  caption_rect, text_rect: TRectF;
-  message_margin, wa: Windows.TRect;
+  hgdip, path, hbrush: Pointer;
+  font, ffamily: Pointer;
+  textRect: TRectF;
+  messageMargin, wa: Windows.TRect;
   bmp: _SimpleBitmap;
-  h_split, radius: integer;
-  rgn: HRGN;
   alpha: uint;
   acoeff: integer;
 begin
   if FActivating then exit;
-  self.monitor := monitor;
+  FMonitorRect := monitorRect;
 
   FActivating := True;
-  radius := 3;
-  h_split := 3;
-  awidth := 240;
-  message_margin.left := radius * 2 div 3 + 3;
-  message_margin.right := radius * 2 div 3 + 3;
-  message_margin.top := radius * 2 div 3 + 3;
-  message_margin.bottom := radius * 2 div 3 + 3;
+  FW := 320;
+  messageMargin.left := 16;
+  messageMargin.right := 16;
+  messageMargin.top := 16;
+  messageMargin.bottom := 16;
 
   // context //
   try
     bmp.dc := CreateCompatibleDC(0);
-    if bmp.dc = 0 then
-    begin
-      err('Notifier.Message_Internal'#10#13'Unable to create device context', nil);
-      FActivating := False;
-      exit;
-    end;
+    if bmp.dc = 0 then raise Exception.Create('CreateCompatibleDC failed');
     hgdip := CreateGraphics(bmp.dc, 0);
-    if not assigned(hgdip) then
-    begin
-      err('Notifier.Message_Internal.Context CreateGraphics failed', nil);
-      exit;
-    end;
+    if not assigned(hgdip) then raise Exception.Create('CreateGraphics failed');
   except
     on e: Exception do
     begin
@@ -160,10 +181,12 @@ begin
 
   // context //
   try
-    GdipCreateFontFamilyFromName(PWideChar(WideString(GetFont)), nil, caption_font_family);
-    GdipCreateFontFamilyFromName(PWideChar(WideString(GetContentFont)), nil, message_font_family);
-    GdipCreateFont(caption_font_family, 16, 1, 2, caption_font);
-    GdipCreateFont(message_font_family, 14, 0, 2, message_font);
+    try
+      GdipCreateFontFamilyFromName(PWideChar(WideString(NOTIFIER_FONT_NAME)), nil, ffamily);
+    except
+      GdipCreateFontFamilyFromName(PWideChar(WideString(NOTIFIER_FONT_NAME_ALT)), nil, ffamily);
+    end;
+    GdipCreateFont(ffamily, 12, 0, 2, font);
   except
     on e: Exception do
     begin
@@ -175,42 +198,31 @@ begin
 
   // measure //
   try
-    caption_rect.x := 0;
-    caption_rect.y := 0;
-    caption_rect.Width := awidth - message_margin.left - message_margin.right;
-    caption_rect.Height := 0;
-    GdipMeasureString(hgdip, PWideChar(WideString(Caption)), -1, caption_font, @caption_rect, nil, @caption_rect, nil, nil);
-    caption_rect.Height := caption_rect.Height + 1;
+    textRect.x := 0;
+    textRect.y := 0;
+    textRect.Width := FW - messageMargin.left - messageMargin.right;
+    textRect.Height := 0;
+    GdipMeasureString(hgdip, PWideChar(Text), -1, font, @textRect, nil, @textRect, nil, nil);
+    textRect.Height := textRect.Height + 1;
 
-    text_rect.x := 0;
-    text_rect.y := 0;
-    text_rect.Width := awidth - message_margin.left - message_margin.right;
-    text_rect.Height := 0;
-    GdipMeasureString(hgdip, PWideChar(WideString(Text)), -1, message_font, @text_rect, nil, @text_rect, nil, nil);
-    text_rect.Height := text_rect.Height + 1;
-
-    caption_rect.x := message_margin.left;
-    caption_rect.y := message_margin.top;
-
-    text_rect.x := message_margin.left;
-    text_rect.y := caption_rect.y + caption_rect.Height + h_split;
+    textRect.x := messageMargin.left;
+    textRect.y := messageMargin.top;
 
     if assigned(hgdip) then GdipDeleteGraphics(hgdip);
     if bmp.dc > 0 then DeleteDC(bmp.dc);
 
-    aheight := message_margin.top + trunc(caption_rect.Height) + h_split +
-      trunc(text_rect.Height) + message_margin.bottom;
+    FH := messageMargin.top + trunc(textRect.Height) + messageMargin.bottom;
 
     // calc position //
-    wa := GetMonitorRect(monitor);
-    need_x := wa.right - awidth - 2;
-    x := wa.right - awidth div 2 - 2;
-    need_y := wa.bottom - aheight - 2;
-    y := need_y;
+    wa := FMonitorRect;
+    FXTarget := wa.right - FW;
+    FX := wa.right - FW div 2;
+    FYTarget := wa.bottom - FH;
+    FY := FYTarget;
     if not animate then
     begin
-      x := need_x;
-      y := need_y;
+      FX := FXTarget;
+      FY := FYTarget;
     end;
   except
     on e: Exception do
@@ -221,24 +233,16 @@ begin
     end;
   end;
 
-  // prepare drawing //
+  // prepare to paint //
   try
-    bmp.topleft.x := x;
-    bmp.topleft.y := y;
-    bmp.Width := awidth;
-    bmp.Height := aheight;
-    if not gdip_gfx.CreateBitmap(bmp) then
-    begin
-      err('Notifier.Message_Internal.Prepare CreateBitmap failed', nil);
-      exit;
-    end;
+    bmp.topleft.x := FX;
+    bmp.topleft.y := FY;
+    bmp.Width := FW;
+    bmp.Height := FH;
+    if not gfx.CreateBitmap(bmp, FHWnd) then raise Exception.Create('CreateBitmap failed');
     hgdip := CreateGraphics(bmp.dc, 0);
-    if not assigned(hgdip) then
-    begin
-      err('Notifier.Message_Internal.Prepare CreateGraphics failed', nil);
-      exit;
-    end;
-    GdipSetTextRenderingHint(hgdip, TextRenderingHintAntiAlias);
+    if not assigned(hgdip) then raise Exception.Create('CreateGraphics failed');
+    GdipSetTextRenderingHint(hgdip, TextRenderingHintClearTypeGridFit);
     GdipSetSmoothingMode(hgdip, SmoothingModeAntiAlias);
   except
     on e: Exception do
@@ -252,30 +256,13 @@ begin
   // background //
   try
     GdipCreatePath(FillModeAlternate, path);
-    GdipStartPathFigure(path);
-    GdipAddPathLine(path, radius, 0, awidth - radius - 1, 0);
-    GdipAddPathArc(path, awidth - radius * 2 - 1, 0, radius * 2, radius * 2, 270, 90);
-
-    GdipAddPathLine(path, awidth - 1, radius, awidth - 1, aheight - radius - 1);
-    GdipAddPathArc(path, awidth - radius * 2 - 1, aheight - radius * 2 - 1, radius * 2, radius * 2, 0, 90);
-
-    GdipAddPathLine(path, awidth - radius - 1, aheight - 1, radius, aheight - 1);
-    GdipAddPathArc(path, 0, aheight - radius * 2 - 1, radius * 2, radius * 2, 90, 90);
-
-    GdipAddPathLine(path, 0, aheight - radius - 1, 0, radius);
-    GdipAddPathArc(path, 0, 0, radius * 2, radius * 2, 180, 90);
-
-    GdipClosePathFigure(path);
-
-    if dwm.IsCompositionEnabled then alpha := $40000000 else alpha := $ff101010;
+    AddPathRoundRect(path, 0, 0, FW, FH, 0);
+    if dwm.IsCompositionEnabled then alpha := $80000000 else alpha := $ff101010;
+    // fill
     GdipCreateSolidFill(alpha, hbrush);
     GdipFillPath(hgdip, hbrush, path);
     GdipDeleteBrush(hbrush);
-
-    GdipCreatePen1($50ffffff, 1, UnitPixel, hpen);
-    GdipDrawPath(hgdip, hpen, path);
-    GdipDeletePen(hpen);
-
+    // cleanup
     GdipDeletePath(path);
   except
     on e: Exception do
@@ -288,11 +275,8 @@ begin
 
   // message caption and text //
   try
-    if alert then GdipCreateSolidFill($ffff5000, hbrush) else GdipCreateSolidFill($ffffffff, hbrush);
-    GdipDrawString(hgdip, PWideChar(WideString(Caption)), -1, caption_font, @caption_rect, nil, hbrush);
-    GdipDeleteBrush(hbrush);
-    if alert then GdipCreateSolidFill($ffff5000, hbrush) else GdipCreateSolidFill($ffffffff, hbrush);
-    GdipDrawString(hgdip, PWideChar(WideString(Text)), -1, message_font, @text_rect, nil, hbrush);
+    if FAlert then GdipCreateSolidFill($ffff5000, hbrush) else GdipCreateSolidFill($ffffffff, hbrush);
+    GdipDrawString(hgdip, PWideChar(Text), -1, font, @textRect, nil, hbrush);
     GdipDeleteBrush(hbrush);
   except
     on e: Exception do
@@ -308,20 +292,17 @@ begin
     acoeff := 255;
     if animate then
     begin
-      acoeff := 255 - (abs(x - need_x) * 510 div awidth);
+      acoeff := 255 - (abs(FX - FXTarget) * 510 div FW);
       if acoeff < 0 then acoeff := 0;
       if acoeff > 255 then acoeff := 255;
     end;
-    gdip_gfx.UpdateLWindow(hWnd, bmp, acoeff);
-    SetWindowPos(hWnd, $ffffffff, 0, 0, 0, 0, swp_noactivate + swp_nomove + swp_nosize + swp_showwindow);
-    if dwm.IsCompositionEnabled then
-    begin
-      rgn := CreateRoundRectRgn(0, 0, awidth, aheight, radius * 2, radius * 2);
-      DWM.EnableBlurBehindWindow(hWnd, rgn);
-      DeleteObject(rgn);
-    end
+    gfx.UpdateLWindow(FHWnd, bmp, acoeff);
+    ShowWindow(FHWnd, SW_SHOWNOACTIVATE);
+    SetWindowPos(FHWnd, $ffffffff, 0, 0, 0, 0, SWP_NOMOVE + SWP_NOSIZE);
+    if DWM.IsCompositionEnabled then
+      DWM.EnableBlurBehindWindow(FHWnd, 0)
     else
-      DWM.DisableBlurBehindWindow(hWnd);
+      DWM.DisableBlurBehindWindow(FHWnd);
   except
     on e: Exception do
     begin
@@ -333,12 +314,10 @@ begin
 
   // cleanup //
   try
-    GdipDeleteFont(caption_font);
-    GdipDeleteFont(message_font);
-    GdipDeleteFontFamily(caption_font_family);
-    GdipDeleteFontFamily(message_font_family);
+    GdipDeleteFont(font);
+    GdipDeleteFontFamily(ffamily);
     GdipDeleteGraphics(hgdip);
-    gdip_gfx.DeleteBitmap(bmp);
+    gfx.DeleteBitmap(bmp);
   except
     on e: Exception do
     begin
@@ -348,84 +327,104 @@ begin
     end;
   end;
 
-  showtime := gettickcount;
-  if not active then SetTimer(hWnd, ID_TIMER, 10, nil);
-  active := True;
+  FShowTime := gettickcount64;
+  if not FActive then SetTimer(FHWnd, ID_TIMER, 10, nil);
+  FActive := True;
   FActivating := False;
 end;
 //------------------------------------------------------------------------------
-procedure _Notifier.Timer;
+procedure TNotifier.Timer;
 var
   delta: integer;
   set_pos: boolean;
   acoeff: integer;
+  pt: windows.TPoint;
 begin
-  if active then
+  if FActive then
   try
-    acoeff := 255 - (abs(x - need_x) * 510 div awidth);
+    acoeff := 255 - (abs(FX - FXTarget) * 510 div FW);
     if acoeff < 0 then acoeff := 0;
     if acoeff > 255 then acoeff := 255;
 
-    set_pos := boolean(need_x - x + need_y - y <> 0);
-    delta := abs(need_x - x) div 6;
-    if delta < 1 then delta := 1;
-    if x > need_x then Dec(x, delta);
-    if x < need_x then Inc(x, delta);
-    delta := abs(need_y - y) div 6;
-    if delta < 1 then delta := 1;
-    if y > need_y then Dec(y, delta);
-    if y < need_y then Inc(y, delta);
-    if set_pos then UpdateLWindowPosAlpha(hWnd, x, y, acoeff);
+    set_pos := (FXTarget <> FX) or (FYTarget <> FY);
+    if set_pos then
+    begin
+      delta := abs(FXTarget - FX) div 6;
+      if delta < 1 then delta := 1;
+      if FX > FXTarget then Dec(FX, delta);
+      if FX < FXTarget then Inc(FX, delta);
+      delta := abs(FYTarget - FY) div 6;
+      if delta < 1 then delta := 1;
+      if FY > FYTarget then Dec(FY, delta);
+      if FY < FYTarget then Inc(FY, delta);
+      UpdateLWindowPosAlpha(FHWnd, FX, FY, acoeff);
+    end;
 
-    if (x <> need_x) or (y <> need_y) then showtime := gettickcount
+    if (FX <> FXTarget) or (FY <> FYTarget) then FShowTime := gettickcount64
     else
-    if not alert then
-      if gettickcount - showtime > timeout then Close;
+    if not FAlert then
+    begin
+      GetCursorPos(pt);
+      if WindowFromPoint(pt) <> FHWnd then
+        if gettickcount64 - FShowTime > FTimeout then Close;
+    end;
   except
     on e: Exception do err('Notifier.Timer', e);
   end;
 end;
 //------------------------------------------------------------------------------
-procedure _Notifier.Close;
+procedure TNotifier.Close;
+var
+  bmp: _SimpleBitmap;
 begin
   try
-    DWM.DisableBlurBehindWindow(hWnd);
-    KillTimer(hWnd, ID_TIMER);
-    ShowWindow(hWnd, 0);
-    active := False;
-    alert := False;
-    current_text := '';
+    bmp.topleft.x := -1;
+    bmp.topleft.y := -1;
+    bmp.Width := 1;
+    bmp.Height := 1;
+    if gfx.CreateBitmap(bmp, FHWnd) then
+    begin
+      gfx.UpdateLWindow(FHWnd, bmp, 255);
+      gfx.DeleteBitmap(bmp);
+    end;
+
+    DWM.DisableBlurBehindWindow(FHWnd);
+    KillTimer(FHWnd, ID_TIMER);
+    ShowWindow(FHWnd, 0);
+    FActive := False;
+    FAlert := False;
+    FText := '';
   except
     on e: Exception do err('Notifier.Close', e);
   end;
 end;
 //------------------------------------------------------------------------------
-procedure _Notifier.WindowProc(var msg: TMessage);
+function TNotifier.WindowProc(wnd: HWND; message: uint; wParam: WPARAM; lParam: LPARAM): LRESULT;
 begin
-  msg.Result := 0;
-  if (msg.msg = wm_lbuttondown) or (msg.msg = wm_rbuttonup) then
+  result := 0;
+  if (message = wm_lbuttondown) or (message = wm_rbuttonup) then
   begin
     Close;
     exit;
   end
-  else if msg.msg = WM_TIMER then
+  else if message = WM_TIMER then
   begin
     Timer;
     exit;
   end;
 
-  msg.Result := DefWindowProc(hWnd, msg.msg, msg.wParam, msg.lParam);
+  result := DefWindowProc(wnd, message, wParam, lParam);
 end;
 //------------------------------------------------------------------------------
-procedure _Notifier.err(where: string; e: Exception);
+procedure TNotifier.err(where: string; e: Exception);
 begin
   if assigned(e) then
   begin
-    AddLog(where + #10#13 + e.message);
-    messagebox(hWnd, PChar(where + #10#13 + e.message), 'Terry', MB_ICONERROR)
+    AddLog(where + LineEnding + e.message);
+    messagebox(FHWnd, PChar(where + LineEnding + e.message), declu.PROGRAM_NAME, MB_ICONERROR)
   end else begin
     AddLog(where);
-    messagebox(hWnd, PChar(where), 'Terry', MB_ICONERROR);
+    messagebox(FHWnd, PChar(where), declu.PROGRAM_NAME, MB_ICONERROR);
   end;
 end;
 //------------------------------------------------------------------------------

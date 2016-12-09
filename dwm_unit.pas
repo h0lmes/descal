@@ -213,7 +213,6 @@ var
   accent: TAccentPolicy;
   flag: bool;
   data: TWindowCompositionAttributeData;
-  margins: windows.TRect;
 begin
   if IsWin10 then
   begin
@@ -279,13 +278,13 @@ begin
   end
   else
   begin
-       if @DwmEnableBlurBehindWindow <> nil then
-       begin
+      if @DwmEnableBlurBehindWindow <> nil then
+      begin
 	      ZeroMemory(@bb, SizeOf(bb));
 	      bb.dwFlags := 1;
 	      bb.fEnable := false;
 	      DwmEnableBlurBehindWindow(AHandle, @bb);
-       end;
+      end;
   end;
 end;
 //------------------------------------------------------------------------------

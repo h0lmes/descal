@@ -20,52 +20,52 @@ object frmColor: TfrmColor
   OnPaint = FormPaint
   OnShow = FormShow
   Position = poScreenCenter
-  LCLVersion = '1.0.10.0'
+  LCLVersion = '1.6.0.4'
   object Label1: TLabel
     Left = 320
-    Height = 14
+    Height = 13
     Top = 85
-    Width = 9
+    Width = 8
     Caption = 'R'
     ParentColor = False
   end
   object Label2: TLabel
     Left = 320
-    Height = 14
+    Height = 13
     Top = 110
-    Width = 9
+    Width = 8
     Caption = 'G'
     ParentColor = False
   end
   object Label3: TLabel
     Left = 320
-    Height = 14
+    Height = 13
     Top = 135
-    Width = 8
+    Width = 7
     Caption = 'B'
     ParentColor = False
   end
   object Label4: TLabel
     Left = 320
-    Height = 14
+    Height = 13
     Top = 170
-    Width = 9
+    Width = 8
     Caption = 'H'
     ParentColor = False
   end
   object Label5: TLabel
     Left = 320
-    Height = 14
+    Height = 13
     Top = 195
-    Width = 7
+    Width = 6
     Caption = 'L'
     ParentColor = False
   end
   object Label6: TLabel
     Left = 320
-    Height = 14
+    Height = 13
     Top = 220
-    Width = 8
+    Width = 7
     Caption = 'S'
     ParentColor = False
   end

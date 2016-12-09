@@ -1,7 +1,7 @@
 unit setsu;
 
 interface
-uses Windows, Controls, Forms, Classes, SysUtils, Registry, gdip_gfx, toolu;
+uses Windows, Controls, Forms, Classes, SysUtils, Registry, gfx, toolu;
 
 type
   _SetsContainer = record
@@ -9,8 +9,10 @@ type
     Border: integer;
     Space: integer;
     Radius: integer;
-    PrevMonth: boolean;
-    NextMonth: boolean;
+    Columns: integer;
+    PrevMonths: integer;
+    NextMonths: integer;
+    MonthShift: integer;
     BaseAlpha: integer;
     Blur: boolean;
     Position: integer;
@@ -55,7 +57,8 @@ begin
   container.CellSize := 28;
   container.Border := 14;
   container.Space := 14;
-  container.Radius := 20;
+  container.Radius := 0;
+  container.Columns := 1;
   StrCopy(container.Font.name, pchar(toolu.GetFont));
   container.Font.size := 12;
   container.Font.color := $ffd0d0d0;
@@ -64,8 +67,9 @@ begin
   container.Font.italic := false;
   container.BaseAlpha := 10;
   container.Blur := true;
-  container.PrevMonth := true;
-  container.NextMonth := true;
+  container.PrevMonths := 1;
+  container.NextMonths := 1;
+  container.MonthShift := 0;
   container.Position := 1;
   container.TodayMarkColor := $ff646464;
   container.FillToday := false;
@@ -76,17 +80,17 @@ begin
   if reg.OpenKey('Software\Holmes\Descal', false) then
   begin
     try
-      X := SetRange(reg.ReadInteger('X'), 0, 100000);
-      Y := SetRange(reg.ReadInteger('Y'), 0, 100000);
+      X := SetRange(reg.ReadInteger('X'), -10000, 10000);
+      Y := SetRange(reg.ReadInteger('Y'), -10000, 10000);
     except end;
     try
       container.CellSize := SetRange(reg.ReadInteger('CellSize'), 10, 50);
       container.Border := SetRange(reg.ReadInteger('Border'), 0, 40);
-      container.Radius := SetRange(reg.ReadInteger('Radius'), 0, 40);
+      container.Columns := SetRange(reg.ReadInteger('Columns'), 1, 12);
       container.BaseAlpha := SetRange(reg.ReadInteger('BaseAlpha'), 0, 255);
       container.Blur := reg.ReadBool('Blur');
-      container.PrevMonth := reg.ReadBool('PrevMonth');
-      container.NextMonth := reg.ReadBool('NextMonth');
+      container.PrevMonths := SetRange(reg.ReadInteger('PrevMonths'), -11, 11);
+      container.NextMonths := SetRange(reg.ReadInteger('NextMonths'), -11, 11);
       container.Position := SetRange(reg.ReadInteger('Position'), 0, 2);
       container.TodayMarkColor := uint(reg.ReadInteger('TodayMarkColor'));
       container.FillToday := reg.ReadBool('FillToday');
@@ -120,10 +124,11 @@ begin
     reg.WriteInteger('CellSize', container.CellSize);
     reg.WriteInteger('Border', container.Border);
     reg.WriteInteger('Radius', container.Radius);
+    reg.WriteInteger('Columns', container.Columns);
     reg.WriteBool('Blur', container.Blur);
     reg.WriteInteger('BaseAlpha', container.BaseAlpha);
-    reg.WriteBool('PrevMonth', container.PrevMonth);
-    reg.WriteBool('NextMonth', container.NextMonth);
+    reg.WriteInteger('PrevMonths', container.PrevMonths);
+    reg.WriteInteger('NextMonths', container.NextMonths);
     reg.WriteInteger('Position', container.Position);
     reg.WriteInteger('TodayMarkColor', container.TodayMarkColor);
     reg.WriteBool('FillToday', container.FillToday);
@@ -155,10 +160,12 @@ begin
   dst.Border := src.Border;
   dst.Space := src.Space;
   dst.Radius := src.Radius;
+  dst.Columns := src.Columns;
   dst.BaseAlpha := src.BaseAlpha;
   dst.Blur := src.Blur;
-  dst.PrevMonth := src.PrevMonth;
-  dst.NextMonth := src.NextMonth;
+  dst.PrevMonths := src.PrevMonths;
+  dst.NextMonths := src.NextMonths;
+  dst.MonthShift := src.MonthShift;
   dst.Position := src.Position;
   dst.TodayMarkColor := src.TodayMarkColor;
   dst.FillToday := src.FillToday;

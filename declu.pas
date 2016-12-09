@@ -4,9 +4,6 @@ interface
 uses Windows, DefaultTranslator;
 
 type
-  TBaseSite = (bsLeft, bsTop, bsRight, bsBottom);
-  TBaseOrientation = (boHorizontal, boVertical);
-
   RAWMOUSE = packed record
     usFlags: USHORT;
     usButtonFlags: USHORT;
@@ -17,16 +14,34 @@ type
     ulExtraInformation: ULONG;
   end;
 
+  RAWKEYBOARD = packed record
+    MakeCode: USHORT;
+    Flags: USHORT;
+    Reserved: USHORT;
+    VKey: USHORT;
+    Message: UINT;
+    ExtraInformation: ULONG;
+  end;
+
+  RAWHID = packed record
+    dwSizeHid: DWORD;
+    dwCount: DWORD;
+    bRawData: array [0..0] of BYTE;
+  end;
+
   RAWINPUTHEADER = packed record
     dwType: DWORD;
     dwSize: DWORD;
-    hDevice: DWORD;
+    hDevice: HANDLE;
     wParam: WPARAM;
   end;
 
   RAWINPUT = packed record
     header: RAWINPUTHEADER;
-    mouse: RAWMOUSE;
+    case Integer of
+      0: (mouse: RAWMOUSE);
+      1: (keyboard: RAWKEYBOARD);
+      2: (hid: RAWHID);
   end;
   PRAWINPUT = ^RAWINPUT;
 
@@ -42,13 +57,9 @@ type
 
 
 const
-  WINITEM_CLASS = 'Descal::WinItem';
+  PROGRAM_NAME = 'Descal';
   GUID = '{F4BA4D0C-B36F-4A4B-91F8-CAF7000AED49}';
-  RollStep = 4;
   NoAll = swp_nosize + swp_nomove + swp_nozorder + swp_noreposition;
-  NOT_AN_ITEM = $ffff; // result const in case when item (items[]) not found
-
-  // system timer event ID's //
   ID_TIMER                  = 1;
   ID_SLOWTIMER              = 2;
 
@@ -60,6 +71,9 @@ resourcestring
   XMsgFirstRun = 'Hello. This is the first time to run Descal.';
   XMsgAddAutostart = 'Would you like to run it every time Windows starts?';
 
+  XShowPreviousMonths = 'Show previous months';
+  XShowNextMonths = 'Show next months';
+  XColumns = 'Columns';
   XProgramSettings = 'Program settings';
   XExit = 'Exit';
 
