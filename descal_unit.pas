@@ -38,6 +38,7 @@ type
     months: array [-11..12] of TMonth;
     FRowCount: integer;
     FColCount: integer;
+    FRowHeight: integer;
     procedure GetMonthSize(dte: TDate; out w, h: integer);
     procedure DrawMonth(dte: TDate; hgdip: pointer; x, y: integer);
     procedure RegisterRawInput;
@@ -116,16 +117,6 @@ begin
     end;
 end;
 //------------------------------------------------------------------------------
-procedure Tfrmdescal.GetMonthSize(dte: TDate; out w, h: integer);
-var
-  cols, rows: integer;
-begin
-  cols := 7;
-  rows := ceil((DayOfTheWeek(StartOfTheMonth(dte)) - 1 + DaysInMonth(dte)) / cols);
-  w := cols * sets.container.CellSize + sets.container.CellSize;
-  h := rows * sets.container.CellSize;
-end;
-//------------------------------------------------------------------------------
 procedure Tfrmdescal.Draw;
   function GetRow(i: integer): integer;
   begin
@@ -144,8 +135,7 @@ var
   x: integer;
   y: integer;
   number: integer;
-  row, col: integer;
-  rowHeight: array [0..23] of integer;
+  row: integer;
 begin
   // select visible months and calc dimensions
   for i := -11 to 12 do
@@ -160,15 +150,11 @@ begin
   FRowCount := ceil((sets.container.PrevMonths + 1 + sets.container.NextMonths) / sets.container.Columns);
   FColCount := min(sets.container.PrevMonths + 1 + sets.container.NextMonths, sets.container.Columns);
 
-  // calc max height for each row
-  for row := 0 to 23 do rowHeight[row] := 0;
+  // calc max month height
+  FRowHeight := 0;
   for i := -11 to 12 do
     if months[i].Visible then
-    begin
-      row := GetRow(i);
-      if row >= 0 then
-        if rowHeight[row] < months[i].Height then rowHeight[row] := months[i].Height;
-    end;
+      if FRowHeight < months[i].Height then FRowHeight := months[i].Height;
 
   // arrange months
   x := sets.container.Border;
@@ -178,12 +164,10 @@ begin
     if months[i].Visible then
     begin
       months[i].X := x;
-      months[i].Y := y;
-      row := GetRow(i);
-      if row >= 0 then months[i].Height := rowHeight[row];
+      months[i].Y := y + (FRowHeight - months[i].Height) div 2;
       if number mod sets.container.Columns = 0 then
       begin
-        inc(y, months[i].Height + sets.container.Space);
+        inc(y, FRowHeight + sets.container.Space);
         x := sets.container.Border;
       end
       else
@@ -192,16 +176,8 @@ begin
     end;
 
   // calc overall size
-  FW := 0;
-  FH := 0;
-  for i := -11 to 12 do
-    if months[i].Visible then
-    begin
-      if FW < months[i].X + months[i].Width then FW := months[i].X + months[i].Width;
-      if FH < months[i].Y + months[i].Height then FH := months[i].Y + months[i].Height;
-    end;
-  FW := FW + sets.container.Border;
-  FH := FH + sets.container.Border div 2;
+  FW := FColCount * (months[0].Width + sets.container.Space * 3 div 2) - sets.container.Space * 3 div 2 + sets.container.Border * 2;
+  FH := FRowCount * (FRowHeight      + sets.container.Space)           - sets.container.Space           + sets.container.Border;
   Width := FW;
   Height := FH;
 
@@ -245,18 +221,15 @@ begin
   for i := -11 to 12 do
     if months[i].Visible then DrawMonth(months[i].TheDate, hgdip, months[i].X, months[i].Y);
 
-  // draw lines //
+  // draw horizontal lines //
   GdipCreatePen1($30ffffff, 1, UnitPixel, hpen);
-  y := sets.container.Border div 2;
-  row := 0;
-  while row < FRowCount - 1 do
+  row := 1;
+  while row < FRowCount do
   begin
-    inc(y, rowHeight[row] + sets.container.Space div 2);
+    y := sets.container.Border div 2 + (FRowHeight + sets.container.Space) * row - sets.container.Space div 2;
     GdipDrawLineI(hgdip, hpen, sets.container.Border, y, FW - sets.container.Border, y);
-    inc(y, sets.container.Space - sets.container.Space div 2);
     inc(row);
   end;
-  //GdipDrawLineI(hgdip, hpen, X + w + sets.container.Space div 2, sets.container.Border div 2, X + w + sets.container.Space div 2, FH - sets.container.Border div 2);
   GdipDeletePen(hpen);
 
   // update window //
@@ -280,6 +253,16 @@ begin
     1: SetWindowPos(Handle, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOSIZE + SWP_NOMOVE + SWP_NOACTIVATE);
     2: SetWindowPos(Handle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE + SWP_NOMOVE + SWP_NOACTIVATE);
   end;
+end;
+//------------------------------------------------------------------------------
+procedure Tfrmdescal.GetMonthSize(dte: TDate; out w, h: integer);
+var
+  cols, rows: integer;
+begin
+  cols := 7;
+  rows := ceil((DayOfTheWeek(StartOfTheMonth(dte)) - 1 + DaysInMonth(dte)) / cols);
+  w := cols * sets.container.CellSize + sets.container.CellSize;
+  h := rows * sets.container.CellSize;
 end;
 //------------------------------------------------------------------------------
 procedure Tfrmdescal.DrawMonth(dte: TDate; hgdip: pointer; x, y: integer);
