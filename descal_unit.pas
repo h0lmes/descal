@@ -118,14 +118,6 @@ begin
 end;
 //------------------------------------------------------------------------------
 procedure Tfrmdescal.Draw;
-  function GetRow(i: integer): integer;
-  begin
-    result := floor((sets.container.PrevMonths + i) / sets.container.Columns);
-  end;
-  function GetCol(i: integer): integer;
-  begin
-    result := (sets.container.PrevMonths + i) mod sets.container.Columns;
-  end;
 var
   i: integer;
   hgdip: Pointer = nil;
@@ -165,13 +157,13 @@ begin
     begin
       months[i].X := x;
       months[i].Y := y + (FRowHeight - months[i].Height) div 2;
-      if number mod sets.container.Columns = 0 then
+      if number mod FRowCount = 0 then
       begin
-        inc(y, FRowHeight + sets.container.Space);
-        x := sets.container.Border;
+        inc(x, months[i].Width + sets.container.Space * 3 div 2);
+        y := sets.container.Border div 2;
       end
       else
-        inc(x, months[i].Width + sets.container.Space * 3 div 2);
+        inc(y, FRowHeight + sets.container.Space);
       inc(number);
     end;
 
@@ -429,8 +421,8 @@ begin
   if message.msg = WM_INPUT then
   begin
      dwSize := 0;
-     GetRawInputData(message.lParam, RID_INPUT, nil, dwSize, sizeof(RAWINPUTHEADER));
-     if GetRawInputData(message.lParam, RID_INPUT, @ri, dwSize, sizeof(RAWINPUTHEADER)) = dwSize then
+     GetRawInputData(message.lParam, RID_INPUT, nil, @dwSize, sizeof(RAWINPUTHEADER));
+     if GetRawInputData(message.lParam, RID_INPUT, @ri, @dwSize, sizeof(RAWINPUTHEADER)) = dwSize then
      begin
        if ri.header.dwType = RIM_TYPEMOUSE then WHMouseMove(0);
      end
@@ -446,7 +438,11 @@ begin
       end;
     WM_TIMER : WMTimer(message);
     WM_COMMAND : WMCommand(message);
-    WM_QUERYENDSESSION : message.Result := CloseQuery;
+    WM_QUERYENDSESSION :
+      begin
+        self.AllowClose := true;
+        message.Result := CloseQuery;
+      end;
     WM_DISPLAYCHANGE : WMDisplayChange(message);
     WM_SETTINGCHANGE : WMSettingChange(message);
     WM_DWMCOMPOSITIONCHANGED : WMCompositionChanged(message);
